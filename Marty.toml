@@ -1,0 +1,7 @@
+# Marty Configuration
+
+# Port for the HTTP server
+server_port = 7777
+
+# Log level (e.g., "trace", "debug", "info", "warn", "error")
+log_level = "info"
