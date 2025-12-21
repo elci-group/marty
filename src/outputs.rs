@@ -16,8 +16,24 @@ pub fn error(msg: &str) {
 
 
 
+use std::env;
+
+pub fn format_path_with_emojis(path: &str) -> String {
+    let home = env::var("HOME").unwrap_or_default();
+    let mut result = path.to_string();
+
+    if !home.is_empty() && result.starts_with(&home) {
+        result = result.replacen(&home, "🏠", 1);
+    }
+
+    result = result.replace("$HOME", "🏠");
+    result = result.replace("~", "🏠");
+
+    result
+}
+
 pub fn print_visit(path: &str) {
-    info!("📍 Visited: {}", path.truecolor(0, 191, 255));
+    info!("📍 Visited: {}", format_path_with_emojis(path).truecolor(0, 191, 255));
 }
 
 pub fn print_hotspots(hotspots: &Hotspots, top: usize) {
@@ -41,7 +57,7 @@ pub fn print_hotspots(hotspots: &Hotspots, top: usize) {
         info!(
             "{} {} {} ({})",
             rank,
-            hs.path.bright_white(),
+            format_path_with_emojis(&hs.path).bright_white(),
             "⚡".repeat( (hs.energy / 10.0).ceil() as usize).truecolor(255, 255, 0),
             hs.energy.to_string().truecolor(192, 192, 192)
         );
@@ -55,7 +71,7 @@ pub fn print_beliefs(beliefs: &Beliefs) {
         return;
     }
     for (id, node) in &beliefs.nodes {
-        info!("🔹 {} ({})", node.label.bright_white().bold(), id.to_string().truecolor(192, 192, 192));
+        info!("🔹 {} ({})", node.label.bright_white().bold(), format_path_with_emojis(&id.to_string()).truecolor(192, 192, 192));
         for (key, value) in &node.metadata {
             info!("  - {}: {}", key.truecolor(0, 191, 255), value.to_string().italic());
         }
@@ -74,13 +90,13 @@ pub fn print_trace(trace: &Trace, last: usize) {
                 "{} [{}] {}",
                 "🚶".truecolor(0, 255, 0),
                 ts.to_string().truecolor(192, 192, 192),
-                path.bright_white()
+                format_path_with_emojis(path).bright_white()
             ),
             Signal::Reinforce { path, weight, ts } => info!(
                 "{} [{}] {} (Weight: {})",
                 "💪".truecolor(255, 255, 0),
                 ts.to_string().truecolor(192, 192, 192),
-                path.bright_white(),
+                format_path_with_emojis(path).bright_white(),
                 weight.to_string().bold()
             ),
             _ => {}
