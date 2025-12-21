@@ -110,4 +110,4 @@ See [ROADMAP.md](ROADMAP.md) for planned features and future direction.
 
 ## 📄 License
 
-This project is proprietary software of **elci-group**.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -3,6 +3,8 @@ name = "marty"
 version = "0.1.0"
 edition = "2021"
 authors = ["Rory Spring <rory.spring@icloud.com>"]
+license = "MIT"
+
 
 [build-dependencies]
 clap = { version = "4.2", features = ["derive"] }
