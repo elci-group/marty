@@ -36,4 +36,4 @@ This is a standard Rust project using Cargo.
 
 ## Testing
 
-There are no apparent tests in the codebase. When adding new functionality, please add corresponding unit or integration tests using the standard Rust testing framework (`#[cfg(test)]`). Run tests with `cargo test`.
+Tests exist in `tests/cli.rs`. Run tests with `cargo test`.

@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf, thread, time::Duration};
+use std::{env, path::PathBuf, path::Path};
 use colored::*;
 use std::collections::VecDeque;
 use crate::error::{MartyError, Result};
@@ -9,38 +9,29 @@ pub struct History {
     pub forward: Vec<PathBuf>,
 }
 
-fn print_fade_breadcrumb(history: &Vec<PathBuf>, current: &PathBuf) {
+fn print_fade_breadcrumb(history: &[PathBuf], current: &Path) {
     let mut trail = VecDeque::new();
 
     let start = if history.len() > 5 { history.len() - 5 } else { 0 };
     for dir in &history[start..] {
         trail.push_back(dir.clone());
     }
-    trail.push_back(current.clone());
+    trail.push_back(current.to_path_buf());
 
-    let len = trail.len();
     let styled_trail: Vec<String> = trail
         .iter()
-        .enumerate()
-        .map(|(i, dir)| {
+        .map(|dir| {
             let component = dir.file_name().unwrap_or_default().to_str().unwrap_or("");
-            let ratio = i as f32 / len as f32;
-            let silver = (192, 192, 192);
-            let white = (255, 255, 255);
-            let r = (silver.0 as f32 * (1.0 - ratio) + white.0 as f32 * ratio) as u8;
-            let g = (silver.1 as f32 * (1.0 - ratio) + white.1 as f32 * ratio) as u8;
-            let b = (silver.2 as f32 * (1.0 - ratio) + white.2 as f32 * ratio) as u8;
-            format!("{}", component.truecolor(r, g, b))
+            format!("{}", component.white())
         })
         .collect();
 
-    println!("{} {}", "📌".truecolor(0, 191, 255).bold(), styled_trail.join(" > "));
+    println!("{} {}", "📌".cyan().bold(), styled_trail.join(" > "));
 }
 
 fn animate_direction(emoji: &str, count: usize) {
     for _ in 0..count {
         print!("{} ", emoji);
-        thread::sleep(Duration::from_millis(50)); // small delay
     }
     println!();
 }
@@ -78,17 +69,17 @@ pub fn traverse(cmd: &str, history: &mut History) -> Result<PathBuf> {
     Ok(current)
 }
 
-fn handle_subdir_jump(steps: &str, current: &mut PathBuf, history: &mut History) -> Result<PathBuf> {
+fn handle_subdir_jump(steps: &str, current: &mut Path, history: &mut History) -> Result<PathBuf> {
     let target_subdir = &steps[1..steps.len() - 1];
     let target_path = current.join(target_subdir);
     if target_path.exists() {
-        history.backward.push(current.clone());
+        history.backward.push(current.to_path_buf());
         history.forward.clear();
         println!(
             "{} {} {}",
-            "📂 Jumped to".truecolor(0, 255, 0).bold(),
-            target_path.display().to_string().truecolor(255, 255, 0),
-            "via target subdir".truecolor(0, 191, 255)
+            "📂 Jumped to".green().bold(),
+            target_path.display().to_string().yellow(),
+            "via target subdir".cyan()
         );
         print_fade_breadcrumb(&history.backward, &target_path);
         Ok(target_path)
@@ -109,10 +100,10 @@ fn handle_backward(count: usize, current: &mut PathBuf, history: &mut History) -
     }
     println!(
         "{} {}",
-        "⬅️ Back to".truecolor(138, 43, 226).bold(),
-        current.display().to_string().truecolor(255, 255, 0)
+        "⬅️ Back to".magenta().bold(),
+        current.display().to_string().yellow()
     );
-    print_fade_breadcrumb(&history.backward, &current);
+    print_fade_breadcrumb(&history.backward, current);
     Ok(current.clone())
 }
 
@@ -128,10 +119,10 @@ fn handle_forward(count: usize, current: &mut PathBuf, history: &mut History) ->
     }
     println!(
         "{} {}",
-        "➡️ Forward to".truecolor(0, 255, 0).bold(),
-        current.display().to_string().truecolor(255, 255, 0)
+        "➡️ Forward to".green().bold(),
+        current.display().to_string().yellow()
     );
-    print_fade_breadcrumb(&history.backward, &current);
+    print_fade_breadcrumb(&history.backward, current);
     Ok(current.clone())
 }
 
@@ -147,10 +138,10 @@ fn handle_up(count: usize, current: &mut PathBuf, history: &mut History) -> Resu
     }
     println!(
         "{} {}",
-        "🔼 Up to parent".truecolor(0, 191, 255).bold(),
-        current.display().to_string().truecolor(255, 255, 0)
+        "🔼 Up to parent".cyan().bold(),
+        current.display().to_string().yellow()
     );
-    print_fade_breadcrumb(&history.backward, &current);
+    print_fade_breadcrumb(&history.backward, current);
     Ok(current.clone())
 }
 

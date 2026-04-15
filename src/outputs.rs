@@ -2,21 +2,16 @@ use colored::*;
 use crate::memory::{Hotspots, Beliefs, Trace};
 use crate::signals::Signal;
 
-use tracing::{info, error};
+use std::env;
+use comfy_table::{Table, Cell, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL};
 
 pub fn success(msg: &str) {
-    info!("✅ {}", msg.truecolor(0, 255, 0).bold());
+    println!("✅ {}", msg.green().bold());
 }
-
-
 
 pub fn error(msg: &str) {
-    error!("❌ {}", msg.truecolor(255, 0, 0).bold());
+    eprintln!("❌ {}", msg.red().bold());
 }
-
-
-
-use std::env;
 
 pub fn format_path_with_emojis(path: &str) -> String {
     let home = env::var("HOME").unwrap_or_default();
@@ -32,20 +27,40 @@ pub fn format_path_with_emojis(path: &str) -> String {
     result
 }
 
+pub fn format_relative_time(ts: i64) -> String {
+    let now = chrono::Utc::now().timestamp();
+    let diff = now - ts;
+    if diff < 60 {
+        "just now".to_string()
+    } else if diff < 3600 {
+        format!("{} mins ago", diff / 60)
+    } else if diff < 86400 {
+        format!("{} hours ago", diff / 3600)
+    } else {
+        format!("{} days ago", diff / 86400)
+    }
+}
+
 pub fn print_visit(path: &str) {
-    info!("📍 Visited: {}", format_path_with_emojis(path).truecolor(0, 191, 255));
+    println!("📍 Visited: {}", format_path_with_emojis(path).cyan());
 }
 
 pub fn print_hotspots(hotspots: &Hotspots, top: usize) {
-    info!("🔥 Top Hotspots");
+    println!("🔥 Top Hotspots");
     let items = hotspots.items.lock();
     let mut sorted_hotspots: Vec<_> = items.values().collect();
     sorted_hotspots.sort_by(|a, b| b.energy.partial_cmp(&a.energy).unwrap_or(std::cmp::Ordering::Equal));
 
     if sorted_hotspots.is_empty() {
-        info!("No hotspots recorded yet. Use 'marty visit <path>' to start.");
+        println!("No hotspots recorded yet. Use 'marty visit <path>' to start.");
         return;
     }
+
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_header(vec!["Rank", "Path", "Energy", "Score"]);
 
     for (i, hs) in sorted_hotspots.iter().take(top).enumerate() {
         let rank = match i {
@@ -54,53 +69,84 @@ pub fn print_hotspots(hotspots: &Hotspots, top: usize) {
             2 => "🥉".to_string(),
             _ => format!("#{}", i + 1),
         };
-        info!(
-            "{} {} {} ({})",
-            rank,
-            format_path_with_emojis(&hs.path).bright_white(),
-            "⚡".repeat( (hs.energy / 10.0).ceil() as usize).truecolor(255, 255, 0),
-            hs.energy.to_string().truecolor(192, 192, 192)
-        );
+        table.add_row(vec![
+            Cell::new(rank),
+            Cell::new(format_path_with_emojis(&hs.path)).fg(comfy_table::Color::White),
+            Cell::new("⚡".repeat((hs.energy / 10.0).ceil() as usize)).fg(comfy_table::Color::Yellow),
+            Cell::new(hs.energy.to_string()).fg(comfy_table::Color::DarkGrey),
+        ]);
     }
+    println!("{table}");
 }
 
 pub fn print_beliefs(beliefs: &Beliefs) {
-    info!("🧠 Beliefs Network");
+    println!("🧠 Beliefs Network");
     if beliefs.nodes.is_empty() {
-        info!("No beliefs formed yet. Try visiting a few directories.");
+        println!("No beliefs formed yet. Try visiting a few directories.");
         return;
     }
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_header(vec!["Label", "Path", "Metadata"]);
+
     for (id, node) in &beliefs.nodes {
-        info!("🔹 {} ({})", node.label.bright_white().bold(), format_path_with_emojis(&id.to_string()).truecolor(192, 192, 192));
+        let mut meta_str = String::new();
         for (key, value) in &node.metadata {
-            info!("  - {}: {}", key.truecolor(0, 191, 255), value.to_string().italic());
+            meta_str.push_str(&format!("{}: {}\n", key, value));
         }
+        table.add_row(vec![
+            Cell::new(format!("🔹 {}", node.label)).fg(comfy_table::Color::Blue),
+            Cell::new(format_path_with_emojis(&id.to_string())).fg(comfy_table::Color::DarkGrey),
+            Cell::new(meta_str.trim()),
+        ]);
     }
+    println!("{table}");
 }
 
 pub fn print_trace(trace: &Trace, last: usize) {
-    info!("📜 Recent Activity Trace");
+    println!("📜 Recent Activity Trace");
     if trace.entries.is_empty() {
-        info!("No activity recorded yet. Get started with 'marty visit'.");
+        println!("No activity recorded yet. Get started with 'marty visit'.");
         return;
     }
+    
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_header(vec!["Type", "Timestamp", "Path", "Details"]);
+
     for entry in trace.entries.iter().rev().take(last) {
         match entry {
-            Signal::Visit { path, ts } => info!(
-                "{} [{}] {}",
-                "🚶".truecolor(0, 255, 0),
-                ts.to_string().truecolor(192, 192, 192),
-                format_path_with_emojis(path).bright_white()
-            ),
-            Signal::Reinforce { path, weight, ts } => info!(
-                "{} [{}] {} (Weight: {})",
-                "💪".truecolor(255, 255, 0),
-                ts.to_string().truecolor(192, 192, 192),
-                format_path_with_emojis(path).bright_white(),
-                weight.to_string().bold()
-            ),
+            Signal::Visit { path, ts } => {
+                table.add_row(vec![
+                    Cell::new("🚶").fg(comfy_table::Color::Green),
+                    Cell::new(format_relative_time(*ts)).fg(comfy_table::Color::DarkGrey),
+                    Cell::new(format_path_with_emojis(path)).fg(comfy_table::Color::White),
+                    Cell::new(""),
+                ]);
+            },
+            Signal::Reinforce { path, weight, ts } => {
+                table.add_row(vec![
+                    Cell::new("💪").fg(comfy_table::Color::Yellow),
+                    Cell::new(format_relative_time(*ts)).fg(comfy_table::Color::DarkGrey),
+                    Cell::new(format_path_with_emojis(path)).fg(comfy_table::Color::White),
+                    Cell::new(format!("Weight: {}", weight)).fg(comfy_table::Color::DarkYellow),
+                ]);
+            },
+            Signal::Tag { path, tag, ts } => {
+                table.add_row(vec![
+                    Cell::new("🏷️").fg(comfy_table::Color::Cyan),
+                    Cell::new(format_relative_time(*ts)).fg(comfy_table::Color::DarkGrey),
+                    Cell::new(format_path_with_emojis(path)).fg(comfy_table::Color::White),
+                    Cell::new(format!("Tag: {}", tag)).fg(comfy_table::Color::Magenta),
+                ]);
+            },
             _ => {}
         }
     }
+    println!("{table}");
 }
 
