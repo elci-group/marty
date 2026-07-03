@@ -1,9 +1,9 @@
-use colored::*;
-use crate::memory::{Hotspots, Beliefs, Trace};
+use crate::memory::{Beliefs, Hotspots, Trace};
 use crate::signals::Signal;
+use colored::*;
 
+use comfy_table::{modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL, Cell, Table};
 use std::env;
-use comfy_table::{Table, Cell, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL};
 
 pub fn success(msg: &str) {
     println!("✅ {}", msg.green().bold());
@@ -49,7 +49,11 @@ pub fn print_hotspots(hotspots: &Hotspots, top: usize) {
     println!("🔥 Top Hotspots");
     let items = hotspots.items.lock();
     let mut sorted_hotspots: Vec<_> = items.values().collect();
-    sorted_hotspots.sort_by(|a, b| b.energy.partial_cmp(&a.energy).unwrap_or(std::cmp::Ordering::Equal));
+    sorted_hotspots.sort_by(|a, b| {
+        b.energy
+            .partial_cmp(&a.energy)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     if sorted_hotspots.is_empty() {
         println!("No hotspots recorded yet. Use 'marty visit <path>' to start.");
@@ -72,7 +76,8 @@ pub fn print_hotspots(hotspots: &Hotspots, top: usize) {
         table.add_row(vec![
             Cell::new(rank),
             Cell::new(format_path_with_emojis(&hs.path)).fg(comfy_table::Color::White),
-            Cell::new("⚡".repeat((hs.energy / 10.0).ceil() as usize)).fg(comfy_table::Color::Yellow),
+            Cell::new("⚡".repeat((hs.energy / 10.0).ceil() as usize))
+                .fg(comfy_table::Color::Yellow),
             Cell::new(hs.energy.to_string()).fg(comfy_table::Color::DarkGrey),
         ]);
     }
@@ -111,7 +116,7 @@ pub fn print_trace(trace: &Trace, last: usize) {
         println!("No activity recorded yet. Get started with 'marty visit'.");
         return;
     }
-    
+
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL)
@@ -127,7 +132,7 @@ pub fn print_trace(trace: &Trace, last: usize) {
                     Cell::new(format_path_with_emojis(path)).fg(comfy_table::Color::White),
                     Cell::new(""),
                 ]);
-            },
+            }
             Signal::Reinforce { path, weight, ts } => {
                 table.add_row(vec![
                     Cell::new("💪").fg(comfy_table::Color::Yellow),
@@ -135,7 +140,7 @@ pub fn print_trace(trace: &Trace, last: usize) {
                     Cell::new(format_path_with_emojis(path)).fg(comfy_table::Color::White),
                     Cell::new(format!("Weight: {}", weight)).fg(comfy_table::Color::DarkYellow),
                 ]);
-            },
+            }
             Signal::Tag { path, tag, ts } => {
                 table.add_row(vec![
                     Cell::new("🏷️").fg(comfy_table::Color::Cyan),
@@ -143,10 +148,9 @@ pub fn print_trace(trace: &Trace, last: usize) {
                     Cell::new(format_path_with_emojis(path)).fg(comfy_table::Color::White),
                     Cell::new(format!("Tag: {}", tag)).fg(comfy_table::Color::Magenta),
                 ]);
-            },
+            }
             _ => {}
         }
     }
     println!("{table}");
 }
-

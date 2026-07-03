@@ -8,3 +8,8 @@ Cargo.lock
 
 # See https://doc.rust-lang.org/cargo/guide/build-cache.html
 .cargo/
+
+# kaptaind runtime state
+.kaptaind/
+
+.toon

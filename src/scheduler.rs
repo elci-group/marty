@@ -1,5 +1,5 @@
-use std::time::Duration;
 use std::thread;
+use std::time::Duration;
 
 pub struct DecayScheduler {
     pub tick_interval: Duration,
@@ -14,11 +14,9 @@ impl DecayScheduler {
     where
         F: FnMut() + Send + 'static,
     {
-        thread::spawn(move || {
-            loop {
-                thread::sleep(self.tick_interval);
-                tick_fn();
-            }
+        thread::spawn(move || loop {
+            thread::sleep(self.tick_interval);
+            tick_fn();
         });
     }
 }

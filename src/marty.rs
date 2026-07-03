@@ -1,7 +1,7 @@
-use std::{env, path::PathBuf, path::Path};
+use crate::error::{MartyError, Result};
 use colored::*;
 use std::collections::VecDeque;
-use crate::error::{MartyError, Result};
+use std::{env, path::Path, path::PathBuf};
 
 #[derive(Debug, Default)]
 pub struct History {
@@ -12,7 +12,11 @@ pub struct History {
 fn print_fade_breadcrumb(history: &[PathBuf], current: &Path) {
     let mut trail = VecDeque::new();
 
-    let start = if history.len() > 5 { history.len() - 5 } else { 0 };
+    let start = if history.len() > 5 {
+        history.len() - 5
+    } else {
+        0
+    };
     for dir in &history[start..] {
         trail.push_back(dir.clone());
     }
@@ -36,12 +40,6 @@ fn animate_direction(emoji: &str, count: usize) {
     println!();
 }
 
-
-
-
-
-
-
 pub fn traverse(cmd: &str, history: &mut History) -> Result<PathBuf> {
     let mut current = env::current_dir()?;
     let steps = cmd.trim();
@@ -62,7 +60,12 @@ pub fn traverse(cmd: &str, history: &mut History) -> Result<PathBuf> {
             '<' => current = handle_backward(count, &mut current, history)?,
             '>' => current = handle_forward(count, &mut current, history)?,
             '^' => current = handle_up(count, &mut current, history)?,
-            _ => return Err(MartyError::Internal(format!("Unrecognized traversal character '{}'", ch))),
+            _ => {
+                return Err(MartyError::Internal(format!(
+                    "Unrecognized traversal character '{}'",
+                    ch
+                )))
+            }
         }
     }
 
@@ -84,7 +87,10 @@ fn handle_subdir_jump(steps: &str, current: &mut Path, history: &mut History) ->
         print_fade_breadcrumb(&history.backward, &target_path);
         Ok(target_path)
     } else {
-        Err(MartyError::Internal(format!("Target subdirectory '{}' does not exist", target_subdir)))
+        Err(MartyError::Internal(format!(
+            "Target subdirectory '{}' does not exist",
+            target_subdir
+        )))
     }
 }
 
@@ -95,7 +101,9 @@ fn handle_backward(count: usize, current: &mut PathBuf, history: &mut History) -
             history.forward.push(current.clone());
             *current = prev;
         } else {
-            return Err(MartyError::Internal("No previous directory in history to go back to".to_string()));
+            return Err(MartyError::Internal(
+                "No previous directory in history to go back to".to_string(),
+            ));
         }
     }
     println!(
@@ -114,7 +122,9 @@ fn handle_forward(count: usize, current: &mut PathBuf, history: &mut History) ->
             history.backward.push(current.clone());
             *current = next;
         } else {
-            return Err(MartyError::Internal("No forward directory in history to go to".to_string()));
+            return Err(MartyError::Internal(
+                "No forward directory in history to go to".to_string(),
+            ));
         }
     }
     println!(
@@ -133,7 +143,9 @@ fn handle_up(count: usize, current: &mut PathBuf, history: &mut History) -> Resu
             history.backward.push(current.clone());
             *current = parent.to_path_buf();
         } else {
-            return Err(MartyError::Internal("No parent directory exists".to_string()));
+            return Err(MartyError::Internal(
+                "No parent directory exists".to_string(),
+            ));
         }
     }
     println!(
@@ -144,7 +156,6 @@ fn handle_up(count: usize, current: &mut PathBuf, history: &mut History) -> Resu
     print_fade_breadcrumb(&history.backward, current);
     Ok(current.clone())
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -210,4 +221,3 @@ mod tests {
         assert_eq!(new_dir, subdir);
     }
 }
-

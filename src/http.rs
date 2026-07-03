@@ -1,20 +1,27 @@
-use warp::Filter;
-use crate::memory::{Hotspots, Beliefs, Trace};
-use std::sync::Arc;
+use crate::config::SETTINGS;
+use crate::memory::{Beliefs, Hotspots, Trace};
+use crate::metrics::{self, HTTP_REQUESTS_TOTAL};
 use parking_lot::Mutex;
 use serde_json::json;
-use crate::metrics::{self, HTTP_REQUESTS_TOTAL};
-use crate::config::SETTINGS;
+use std::sync::Arc;
+use warp::Filter;
 
 use crate::outputs;
 
-pub async fn run_server(hotspots: Arc<Mutex<Hotspots>>, beliefs: Arc<Mutex<Beliefs>>, trace: Arc<Mutex<Trace>>) {
+pub async fn run_server(
+    hotspots: Arc<Mutex<Hotspots>>,
+    beliefs: Arc<Mutex<Beliefs>>,
+    trace: Arc<Mutex<Trace>>,
+) {
     let hs = warp::any().map(move || {
         HTTP_REQUESTS_TOTAL.inc();
         let h = hotspots.lock();
-        let v: Vec<_> = h.items.lock().values().map(|hs| {
-            json!({"path": hs.path, "energy": hs.energy, "last_ts": hs.last_ts})
-        }).collect();
+        let v: Vec<_> = h
+            .items
+            .lock()
+            .values()
+            .map(|hs| json!({"path": hs.path, "energy": hs.energy, "last_ts": hs.last_ts}))
+            .collect();
         warp::reply::json(&v)
     });
 
@@ -55,7 +62,9 @@ pub async fn run_server(hotspots: Arc<Mutex<Hotspots>>, beliefs: Arc<Mutex<Belie
         .or(health_route)
         .or(metrics_route);
 
-    outputs::success(&format!("HTTP dashboard running on http://127.0.0.1:{}", port));
-    warp::serve(routes).run(([127,0,0,1], port)).await;
+    outputs::success(&format!(
+        "HTTP dashboard running on http://127.0.0.1:{}",
+        port
+    ));
+    warp::serve(routes).run(([127, 0, 0, 1], port)).await;
 }
-

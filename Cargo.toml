@@ -1,6 +1,6 @@
 [package]
 name = "marty"
-version = "0.1.0"
+version = "0.1.10"
 edition = "2021"
 authors = ["Rory Spring <rory.spring@icloud.com>"]
 license = "MIT"

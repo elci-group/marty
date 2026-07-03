@@ -1,20 +1,20 @@
-use ratatui::{
-    backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, BorderType, List, ListItem, Tabs, Paragraph, Gauge, ListState},
-    Terminal,
-};
+use crate::error::Result;
+use crate::memory::{Beliefs, Hotspots, Trace};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{io, sync::Arc};
 use parking_lot::Mutex;
-use crate::memory::{Hotspots, Beliefs, Trace};
-use crate::error::Result;
+use ratatui::{
+    backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Borders, Gauge, List, ListItem, ListState, Paragraph, Tabs},
+    Terminal,
+};
+use std::{io, sync::Arc};
 
 pub struct TuiApp {
     hotspots: Arc<Mutex<Hotspots>>,
@@ -28,7 +28,11 @@ pub struct TuiApp {
 }
 
 impl TuiApp {
-    pub fn new(hotspots: Arc<Mutex<Hotspots>>, beliefs: Arc<Mutex<Beliefs>>, trace: Arc<Mutex<Trace>>) -> Self {
+    pub fn new(
+        hotspots: Arc<Mutex<Hotspots>>,
+        beliefs: Arc<Mutex<Beliefs>>,
+        trace: Arc<Mutex<Trace>>,
+    ) -> Self {
         Self {
             hotspots,
             beliefs,
@@ -55,7 +59,9 @@ impl TuiApp {
                 if let Event::Key(key) = event::read()? {
                     match key.code {
                         KeyCode::Char('q') => self.should_quit = true,
-                        KeyCode::Right | KeyCode::Tab => self.active_tab = (self.active_tab + 1) % 3,
+                        KeyCode::Right | KeyCode::Tab => {
+                            self.active_tab = (self.active_tab + 1) % 3
+                        }
                         KeyCode::Left => self.active_tab = (self.active_tab + 2) % 3,
                         KeyCode::Down | KeyCode::Char('j') => self.next_item(),
                         KeyCode::Up | KeyCode::Char('k') => self.previous_item(),
@@ -75,7 +81,7 @@ impl TuiApp {
 
         Ok(())
     }
-    
+
     fn next_item(&mut self) {
         match self.active_tab {
             0 => {
@@ -83,7 +89,13 @@ impl TuiApp {
                 let count = hs.items.lock().len();
                 if count > 0 {
                     let i = match self.hotspots_state.selected() {
-                        Some(i) => if i >= count - 1 { 0 } else { i + 1 },
+                        Some(i) => {
+                            if i >= count - 1 {
+                                0
+                            } else {
+                                i + 1
+                            }
+                        }
                         None => 0,
                     };
                     self.hotspots_state.select(Some(i));
@@ -93,7 +105,13 @@ impl TuiApp {
                 let count = self.beliefs.lock().nodes.len();
                 if count > 0 {
                     let i = match self.beliefs_state.selected() {
-                        Some(i) => if i >= count - 1 { 0 } else { i + 1 },
+                        Some(i) => {
+                            if i >= count - 1 {
+                                0
+                            } else {
+                                i + 1
+                            }
+                        }
                         None => 0,
                     };
                     self.beliefs_state.select(Some(i));
@@ -103,7 +121,13 @@ impl TuiApp {
                 let count = std::cmp::min(self.trace.lock().entries.len(), 50);
                 if count > 0 {
                     let i = match self.trace_state.selected() {
-                        Some(i) => if i >= count - 1 { 0 } else { i + 1 },
+                        Some(i) => {
+                            if i >= count - 1 {
+                                0
+                            } else {
+                                i + 1
+                            }
+                        }
                         None => 0,
                     };
                     self.trace_state.select(Some(i));
@@ -120,7 +144,13 @@ impl TuiApp {
                 let count = hs.items.lock().len();
                 if count > 0 {
                     let i = match self.hotspots_state.selected() {
-                        Some(i) => if i == 0 { count - 1 } else { i - 1 },
+                        Some(i) => {
+                            if i == 0 {
+                                count - 1
+                            } else {
+                                i - 1
+                            }
+                        }
                         None => count - 1,
                     };
                     self.hotspots_state.select(Some(i));
@@ -130,7 +160,13 @@ impl TuiApp {
                 let count = self.beliefs.lock().nodes.len();
                 if count > 0 {
                     let i = match self.beliefs_state.selected() {
-                        Some(i) => if i == 0 { count - 1 } else { i - 1 },
+                        Some(i) => {
+                            if i == 0 {
+                                count - 1
+                            } else {
+                                i - 1
+                            }
+                        }
                         None => count - 1,
                     };
                     self.beliefs_state.select(Some(i));
@@ -140,7 +176,13 @@ impl TuiApp {
                 let count = std::cmp::min(self.trace.lock().entries.len(), 50);
                 if count > 0 {
                     let i = match self.trace_state.selected() {
-                        Some(i) => if i == 0 { count - 1 } else { i - 1 },
+                        Some(i) => {
+                            if i == 0 {
+                                count - 1
+                            } else {
+                                i - 1
+                            }
+                        }
                         None => count - 1,
                     };
                     self.trace_state.select(Some(i));
@@ -160,10 +202,19 @@ impl TuiApp {
 
         let titles = vec!["🔥 Hotspots", "🧠 Beliefs", "📜 Trace"];
         let tabs = Tabs::new(titles)
-            .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Marty Explorer"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .title("Marty Explorer"),
+            )
             .select(self.active_tab)
             .style(Style::default().fg(Color::Cyan))
-            .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            );
         f.render_widget(tabs, chunks[0]);
 
         match self.active_tab {
@@ -183,13 +234,15 @@ impl TuiApp {
         let hs = self.hotspots.lock();
         let items_lock = hs.items.lock();
         let mut sorted: Vec<_> = items_lock.values().collect();
-        sorted.sort_by(|a, b| b.energy.partial_cmp(&a.energy).unwrap_or(std::cmp::Ordering::Equal));
+        sorted.sort_by(|a, b| {
+            b.energy
+                .partial_cmp(&a.energy)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         let list_items: Vec<ListItem> = sorted
             .iter()
-            .map(|h| {
-                ListItem::new(vec![Line::from(vec![Span::raw(&h.path)])])
-            })
+            .map(|h| ListItem::new(vec![Line::from(vec![Span::raw(&h.path)])]))
             .collect();
 
         if self.hotspots_state.selected().is_none() && !list_items.is_empty() {
@@ -197,8 +250,17 @@ impl TuiApp {
         }
 
         let list = List::new(list_items)
-            .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Hotspots"))
-            .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .title("Hotspots"),
+            )
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
+            )
             .highlight_symbol(">> ");
         f.render_stateful_widget(list, chunks[0], &mut self.hotspots_state);
 
@@ -209,17 +271,25 @@ impl TuiApp {
                     .margin(1)
                     .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
                     .split(chunks[1]);
-                
-                let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Details");
+
+                let block = Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .title("Details");
                 f.render_widget(block.clone(), chunks[1]);
-                
+
                 let energy_percent = ((h.energy / 100.0) * 100.0).clamp(0.0, 100.0) as u16;
                 let gauge = Gauge::default()
                     .block(Block::default().title("Energy Level"))
-                    .gauge_style(Style::default().fg(Color::Yellow).bg(Color::Black).add_modifier(Modifier::ITALIC))
+                    .gauge_style(
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .bg(Color::Black)
+                            .add_modifier(Modifier::ITALIC),
+                    )
                     .percent(energy_percent);
                 f.render_widget(gauge, detail_chunks[0]);
-                
+
                 let text = vec![
                     Line::from(Span::raw(format!("Path: {}", h.path))),
                     Line::from(Span::raw(format!("Energy Score: {:.2}", h.energy))),
@@ -229,7 +299,10 @@ impl TuiApp {
                 f.render_widget(p, detail_chunks[1]);
             }
         } else {
-            let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Details");
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .title("Details");
             f.render_widget(block, chunks[1]);
         }
     }
@@ -239,16 +312,19 @@ impl TuiApp {
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
             .split(area);
-            
+
         let b = self.beliefs.lock();
         let nodes: Vec<_> = b.nodes.iter().collect();
-        
+
         let list_items: Vec<ListItem> = nodes
             .iter()
             .map(|(_path, node)| {
-                ListItem::new(vec![Line::from(vec![
-                    Span::styled(format!("🔹 {} ", node.label), Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
-                ])])
+                ListItem::new(vec![Line::from(vec![Span::styled(
+                    format!("🔹 {} ", node.label),
+                    Style::default()
+                        .fg(Color::Blue)
+                        .add_modifier(Modifier::BOLD),
+                )])])
             })
             .collect();
 
@@ -257,11 +333,20 @@ impl TuiApp {
         }
 
         let list = List::new(list_items)
-            .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Beliefs"))
-            .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .title("Beliefs"),
+            )
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
+            )
             .highlight_symbol(">> ");
         f.render_stateful_widget(list, chunks[0], &mut self.beliefs_state);
-        
+
         if let Some(selected) = self.beliefs_state.selected() {
             if let Some((path, node)) = nodes.get(selected) {
                 let mut text = vec![
@@ -269,16 +354,24 @@ impl TuiApp {
                     Line::from(Span::raw(format!("Path: {}", path))),
                     Line::from(Span::raw("Metadata:")),
                 ];
-                
+
                 for (key, value) in &node.metadata {
                     text.push(Line::from(Span::raw(format!("  {}: {}", key, value))));
                 }
-                
-                let p = Paragraph::new(text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Details"));
+
+                let p = Paragraph::new(text).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded)
+                        .title("Details"),
+                );
                 f.render_widget(p, chunks[1]);
             }
         } else {
-            let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Details");
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .title("Details");
             f.render_widget(block, chunks[1]);
         }
     }
@@ -288,24 +381,26 @@ impl TuiApp {
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
             .split(area);
-            
+
         let t = self.trace.lock();
         let entries: Vec<_> = t.entries.iter().rev().take(50).collect();
-        
+
         let list_items: Vec<ListItem> = entries
             .iter()
             .map(|entry| {
                 let (icon, color, details) = match entry {
-                    crate::signals::Signal::Visit { path, .. } => ("🚶", Color::Green, path.to_string()),
-                    crate::signals::Signal::Tag { path, tag, .. } => ("🏷️", Color::Magenta, format!("{} (Tag: {})", path, tag)),
+                    crate::signals::Signal::Visit { path, .. } => {
+                        ("🚶", Color::Green, path.to_string())
+                    }
+                    crate::signals::Signal::Tag { path, tag, .. } => {
+                        ("🏷️", Color::Magenta, format!("{} (Tag: {})", path, tag))
+                    }
                     _ => ("🔹", Color::Gray, "Unknown signal".to_string()),
                 };
-                ListItem::new(vec![
-                    Line::from(vec![
-                        Span::styled(format!("{} ", icon), Style::default()),
-                        Span::styled(details, Style::default().fg(color)),
-                    ]),
-                ])
+                ListItem::new(vec![Line::from(vec![
+                    Span::styled(format!("{} ", icon), Style::default()),
+                    Span::styled(details, Style::default().fg(color)),
+                ])])
             })
             .collect();
 
@@ -314,11 +409,20 @@ impl TuiApp {
         }
 
         let list = List::new(list_items)
-            .block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Trace History"))
-            .highlight_style(Style::default().bg(Color::DarkGray).add_modifier(Modifier::BOLD))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .title("Trace History"),
+            )
+            .highlight_style(
+                Style::default()
+                    .bg(Color::DarkGray)
+                    .add_modifier(Modifier::BOLD),
+            )
             .highlight_symbol(">> ");
         f.render_stateful_widget(list, chunks[0], &mut self.trace_state);
-        
+
         if let Some(selected) = self.trace_state.selected() {
             if let Some(entry) = entries.get(selected) {
                 let text = match entry {
@@ -351,12 +455,20 @@ impl TuiApp {
                         Line::from(Span::raw(format!("Timestamp: {}", ts))),
                     ],
                 };
-                
-                let p = Paragraph::new(text).block(Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Details"));
+
+                let p = Paragraph::new(text).block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_type(BorderType::Rounded)
+                        .title("Details"),
+                );
                 f.render_widget(p, chunks[1]);
             }
         } else {
-            let block = Block::default().borders(Borders::ALL).border_type(BorderType::Rounded).title("Details");
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .title("Details");
             f.render_widget(block, chunks[1]);
         }
     }

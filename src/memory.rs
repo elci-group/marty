@@ -19,12 +19,12 @@ pub struct Hotspots {
     pub items: Arc<Mutex<HashMap<String, Hotspot>>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Beliefs {
     pub nodes: HashMap<String, Node>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Trace {
     pub entries: Vec<Signal>,
 }
