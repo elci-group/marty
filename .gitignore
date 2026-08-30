@@ -13,3 +13,18 @@ Cargo.lock
 .kaptaind/
 
 .toon
+
+# generated / noisy
+/.kaptaind/
+/target/
+/node_modules/
+/.venv/
+/venv/
+/__pycache__/
+*.pyc
+*.pyo
+/.cargo/
+*.swp
+*.swo
+.DS_Store
+*.log
